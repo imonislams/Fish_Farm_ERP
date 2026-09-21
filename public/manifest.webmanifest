@@ -1,0 +1,50 @@
+{
+    "name": "Fish Farm ERP",
+    "short_name": "FishFarm",
+    "description": "Fish farm management ERP — ponds, fish stock, feed, FCR, sales and accounts.",
+    "id": "/",
+    "start_url": "/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "display_override": ["standalone", "minimal-ui"],
+    "orientation": "any",
+    "theme_color": "#14532d",
+    "background_color": "#f1f5f4",
+    "lang": "en",
+    "dir": "ltr",
+    "categories": ["business", "productivity"],
+    "icons": [
+        {
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Dashboard",
+            "url": "/dashboard"
+        },
+        {
+            "name": "New Inspection",
+            "url": "/fish-farm/fcr/inspections/new"
+        },
+        {
+            "name": "Fish Sales",
+            "url": "/fish-farm/sales"
+        }
+    ]
+}

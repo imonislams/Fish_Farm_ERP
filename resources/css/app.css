@@ -1,0 +1,185 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+/*
+|--------------------------------------------------------------------------
+| Fish Farm ERP — Design Tokens
+|--------------------------------------------------------------------------
+| The single source of truth for the visual identity.
+| See docs/UI_GUIDELINES.md before adding new colours or gradients.
+| Tailwind v4 exposes these @theme values as utilities (bg-primary, text-muted).
+*/
+
+@theme {
+    --font-sans: 'Inter', 'Hind Siliguri', ui-sans-serif, system-ui, -apple-system,
+        'Segoe UI', 'Noto Sans Bengali', sans-serif;
+
+    /* Brand — primary */
+    --color-primary: #15803d;
+    --color-primary-dark: #14532d;
+    --color-primary-light: #22c55e;
+
+    /* Brand — secondary / accent (teal) */
+    --color-secondary: #0f766e;
+    --color-secondary-dark: #115e59;
+    --color-accent: #14b8a6;
+
+    /* Semantic states */
+    --color-success: #16a34a;
+    --color-success-soft: #dcfce7;
+    --color-warning: #d97706;
+    --color-warning-soft: #fef3c7;
+    --color-danger: #dc2626;
+    --color-danger-soft: #fee2e2;
+    --color-info: #0284c7;
+    --color-info-soft: #e0f2fe;
+
+    /* Surfaces */
+    --color-background: #f1f5f4;
+    --color-surface: #ffffff;
+    --color-surface-muted: #f8fafc;
+    --color-border: #e2e8f0;
+    --color-border-strong: #cbd5e1;
+
+    /* Text */
+    --color-text: #0f172a;
+    --color-text-soft: #334155;
+    --color-muted: #64748b;
+
+    /* Sidebar (dark green) */
+    --color-sidebar: #0b2f1d;
+    --color-sidebar-hover: #14532d;
+    --color-sidebar-active: #16a34a;
+    --color-sidebar-text: #d1fae5;
+    --color-sidebar-muted: #86b8a0;
+
+    /* Radii */
+    --radius-card: 0.875rem;
+    --radius-control: 0.5rem;
+
+    /* Elevation */
+    --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06);
+    --shadow-card-hover: 0 2px 4px rgb(15 23 42 / 0.06), 0 10px 22px rgb(15 23 42 / 0.09);
+    --shadow-dropdown: 0 10px 30px rgb(15 23 42 / 0.14);
+
+    /* Layout metrics */
+    --spacing-sidebar: 16rem;
+    --spacing-header: 3.75rem;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Base layer
+|--------------------------------------------------------------------------
+*/
+
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        background-color: var(--color-background);
+        color: var(--color-text);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* Bengali-friendly line height for mixed-script content */
+    body :where(p, li, td, th, label, span) {
+        line-height: 1.6;
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Reusable component layer
+|--------------------------------------------------------------------------
+| Only patterns that appear on many pages belong here. Page-specific styling
+| should use utility classes directly in the Blade partial.
+*/
+
+@layer components {
+    /* Unified gradients — the ONLY two gradients in the app. */
+    .gradient-primary {
+        background-image: linear-gradient(
+            120deg,
+            var(--color-primary-dark) 0%,
+            var(--color-primary) 55%,
+            var(--color-secondary) 100%
+        );
+    }
+
+    .gradient-hero {
+        background-image: linear-gradient(
+            135deg,
+            var(--color-primary-dark) 0%,
+            var(--color-secondary-dark) 100%
+        );
+    }
+
+    .surface-card {
+        background-color: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-card);
+        box-shadow: var(--shadow-card);
+    }
+
+    .surface-card--hoverable {
+        transition: box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .surface-card--hoverable:hover {
+        box-shadow: var(--shadow-card-hover);
+        transform: translateY(-1px);
+    }
+
+    /* Table shell — keeps tables readable and scrollable on small screens */
+    .table-shell {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-shell table {
+        min-width: 100%;
+        border-collapse: collapse;
+    }
+
+    /* Prevents clipped action buttons on narrow viewports */
+    .table-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        justify-content: flex-end;
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Utilities
+|--------------------------------------------------------------------------
+*/
+
+@utility text-muted {
+    color: var(--color-muted);
+}
+
+/* Skip link for keyboard users */
+@utility sr-only-focusable {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}

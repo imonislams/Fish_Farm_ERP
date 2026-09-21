@@ -1,0 +1,1 @@
+<x-layout.error :code="503" message="The Fish Farm ERP requires a server connection. Reconnect and try again." />
