@@ -7,7 +7,60 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-## About Laravel
+## Fish Farm ERP
+A modern fish-farm ERP built with **Laravel 12 + Inertia.js + React 18 + Vite + MySQL/MariaDB**.
+
+The entire authenticated application is a server-driven SPA: Laravel owns routing, authorization and
+business logic; Inertia bridges Laravel and React; React renders the UI. There are no full-page reloads
+for normal navigation or CRUD.
+
+### Stack
+| Layer | Technology |
+| --- | --- |
+| Backend | Laravel 12, PHP 8.2 |
+| Bridge | Inertia.js (`inertiajs/inertia-laravel` ^2.0) |
+| Frontend | React 18 (`@inertiajs/react` ^2.0) |
+| Build | Vite 7 + `@vitejs/plugin-react` |
+| Styling | Tailwind CSS 4 |
+| Database | MySQL / MariaDB (`fish_farm_erp`) |
+| Auth | Laravel session guard |
+
+### Getting started
+```bash
+composer install
+cp .env.example .env            # set DB_* and ADMIN_* credentials
+php artisan key:generate
+php artisan migrate             # additive; never destroys data
+npm install && npm run build
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+The initial admin user is created from `.env` by `AdminUserSeeder`.
+
+### Optional demo data (development only)
+
+```bash
+php artisan db:seed --class=DemoDataSeeder      # ponds / fish / feed
+php artisan db:seed --class=DemoErpDataSeeder   # customers / suppliers / sales / purchases / finance / parties
+```
+
+Both are **idempotent** and write only rows carrying the `Demo - ` / `DEMO-` prefix. Remove only those
+with `php artisan db:seed --class=DemoErpDataSeeder --remove`. A plain `db:seed` never invents data.
+
+### Documentation
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layering rules.
+- [docs/DEVELOPER-GUIDE.md](docs/DEVELOPER-GUIDE.md) — working flow, field data flow, how to add a module.
+- [docs/WORKING-FLOW.md](docs/WORKING-FLOW.md) — the runtime flow end-to-end: a real Sale CRUD walk-through, module relationships, permissions, currency and reports.
+- [docs/MODULES.md](docs/MODULES.md) — every module: routes, controllers, services, models, tables.
+- [docs/DATABASE.md](docs/DATABASE.md), [docs/ROUTES.md](docs/ROUTES.md), [docs/BUSINESS_LOGIC.md](docs/BUSINESS_LOGIC.md), [docs/PERMISSIONS.md](docs/PERMISSIONS.md).
+- [docs/CHANGELOG.md](docs/CHANGELOG.md) — session-by-session history.
+
+### Core rules
+1. **Laravel is the source of truth** — values are computed in services and sent as props; React never invents totals.
+2. **Money is numeric in the DB**, formatted in the UI by one `money()` helper.
+3. **Authorization is server-side** (`permission:*` middleware + policies); React visibility is UX only.
+4. **No full-page reloads** — use Inertia `<Link>` / `router.*`.
+5. **Never fabricate data** — empty modules show an empty state.
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 

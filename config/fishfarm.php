@@ -54,7 +54,10 @@ return [
     | row; per-farm overrides live in the settings table once that module lands.
     */
     'currency_code' => 'BDT',
-    'currency_symbol' => '\u{09F3}', // ৳
+    // NOTE: double-quoted on purpose — PHP only expands \u{...} escapes inside
+    // double quotes. A single-quoted '\u{09F3}' is the literal 8-character text
+    // "\u{09F3}", which is what leaked into the UI as "\u{09F3}12,600.00".
+    'currency_symbol' => "\u{09F3}", // ৳
     'currency_decimals' => 2,
 
     /*
@@ -93,30 +96,5 @@ return [
         'start_url' => '/dashboard',
         // Asset caching only — authenticated responses are never cached. See docs/PWA.md.
         'cache_version' => 'fishfarm-v1',
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Feature flags
-    |--------------------------------------------------------------------------
-    | Modules are scaffolded progressively. A flag set to false keeps the UI
-    | honest: the page renders an explicit "not implemented" state rather than
-    | fake data. Flip these to true as real implementations land.
-    */
-    'modules' => [
-        'dashboard' => true,
-        'ponds' => false,
-        'ledger' => false,
-        'feed' => false,
-        'fcr' => false,
-        'fish' => false,
-        'sales' => false,
-        'customers' => false,
-        'suppliers' => false,
-        'parties' => false,
-        'finance' => false,
-        'reports' => false,
-        'settings' => false,
-        'notifications' => false,
     ],
 ];

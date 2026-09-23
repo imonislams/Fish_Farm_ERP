@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
-use Illuminate\Contracts\View\View;
 
 /**
  * Permissions reference (read-only list).
@@ -18,17 +17,27 @@ use Illuminate\Contracts\View\View;
  */
 class PermissionController extends Controller
 {
-    /** Grouped permission catalogue. */
-    public function index(): View
+    /** Grouped permission catalogue (Inertia/React). */
+    public function index(): \Inertia\Response
     {
         $groups = Permission::query()
             ->with('roles:id,label')            // eager load: avoids N+1
             ->orderBy('group')
             ->orderBy('name')
             ->get(['id', 'name', 'group', 'label'])
-            ->groupBy('group');
+            ->groupBy('group')
+            ->map(fn ($permissions, $group): array => [
+                'group' => $group,
+                'permissions' => $permissions->map(fn (Permission $p): array => [
+                    'name' => $p->name,
+                    'label' => $p->label,
+                    'roles' => $p->roles->pluck('label')->all(),
+                ])->values()->all(),
+            ])
+            ->values()
+            ->all();
 
-        return view('settings.permissions.index', [
+        return \Inertia\Inertia::render('Settings/Permissions/Index', [
             'title' => 'Permissions',
             'groups' => $groups,
             'total' => Permission::count(),

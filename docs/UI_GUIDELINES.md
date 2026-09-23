@@ -184,35 +184,42 @@ Must work on desktop, laptop, tablet and mobile.
 
 ## 10. Empty and loading states
 
-- Every list/report renders `<x-empty-state.empty-state>` instead of an empty
-  table body.
-- Long-running sections use `<x-loading.loading>`.
-- **Never** fill an empty area with placeholder business numbers. An
-  unimplemented module shows `x-layout.module-pending` / the placeholder page.
+- Every React list/report renders the shared `<EmptyState>` component instead of
+  an empty table body (`DataTable` falls back to it automatically).
+- Long-running sections use the loading components in `Components/Loading`.
+- **Never** fill an empty area with placeholder business numbers. A period with no
+  data shows an honest empty state — the ERP invents nothing.
 
-## 11. Forms
+## 11. Forms (React)
 
-Build forms from `x-form.field` + `x-form.input` / `select` / `textarea` /
-`date-picker`. `x-form.field` renders the label, required marker, hint and the
-Laravel validation error for the field automatically.
+Forms are React components built from `Components/Form.jsx`:
+`Field` + `Input` / `Select` / `Textarea` / `DatePicker` / `NumberInput`. `Field`
+renders the label, required marker, hint and the Inertia validation `error` for the
+field. Submit with `useForm()` and `post`/`put`.
 
-```blade
-<x-form.field label="Pond name" name="name" required>
-    <x-form.input name="name" :value="old('name')" />
-</x-form.field>
+```jsx
+<Field label="Pond name" name="name" required error={errors.name}>
+    <Input name="name" value={data.name} onChange={(e) => setData('name', e.target.value)} />
+</Field>
 ```
 
-Server-side validation is authoritative; client-side validation is a convenience
-only (see `resources/js/components/form-guards.js`).
+Server-side validation is authoritative (FormRequest rules); the client only
+surfaces the errors Laravel returns.
 
 ## 12. JavaScript
 
-Vanilla JS + Vite only. Layered as `app.js` (bootstrap) → `network.js`,
-`pwa.js`, `components/*.js`. UI interactions only — no business logic.
+Two Vite entry points, deliberately:
 
-Declarative bindings (`x-data`, `x-show`, `:class`, `@click`) are supported by a
-tiny local helper in `resources/js/components/ui.js`; there is **no** Alpine
-dependency. Sidebar state is exposed as `window.$store.sidebar`.
+- `resources/js/app.jsx` — the **Inertia + React SPA** for every authenticated page.
+  This is the application UI. Navigation, forms and actions go through Inertia;
+  there are no full-page reloads.
+- `resources/js/app.js` — a small vanilla layer for the few server-rendered pages
+  that remain (login) plus PWA wiring: flash toasts, online/offline awareness,
+  form feedback, service-worker registration. UI interaction only — no business
+  logic.
+
+There is no Alpine, Vue, Livewire or other UI framework. Shared React UI lives in
+`resources/js/react/Components`; the shell is `react/Layouts/AppLayout.jsx`.
 
 ## 13. Accessibility
 

@@ -36,12 +36,24 @@ return [
             'dashboard.view' => 'View dashboard',
         ],
 
+        /*
+        | Pond Management (Phase 2 — ENFORCED).
+        | `pond.type.manage` (Phase 1 key) was split into per-action pond_type
+        | keys so a role can view the type catalogue without being able to edit
+        | or delete from it. The old key is retired — see docs/PERMISSIONS.md §5.
+        */
         'Pond' => [
             'pond.view' => 'View ponds',
             'pond.create' => 'Create ponds',
             'pond.update' => 'Update ponds',
             'pond.delete' => 'Delete ponds',
-            'pond.type.manage' => 'Manage pond types',
+        ],
+
+        'Pond Types' => [
+            'pond_type.view' => 'View pond types',
+            'pond_type.create' => 'Create pond types',
+            'pond_type.update' => 'Update pond types',
+            'pond_type.delete' => 'Delete pond types',
         ],
 
         'Feed' => [
@@ -50,6 +62,8 @@ return [
             'feed.usage' => 'Record feed usage',
             'feed.adjust' => 'Adjust feed stock',
             'feed.type.manage' => 'Manage feed types',
+            'feed.schedule.manage' => 'Manage feeding schedules',
+            'feed.feeding' => 'Record feedings (actual meals)',
         ],
 
         'Fish Stock' => [
@@ -58,6 +72,8 @@ return [
             'fish.mortality' => 'Record mortality',
             'fish.harvest' => 'Record harvest',
             'fish.species.manage' => 'Manage fish species',
+            'fish.batch.view' => 'View fish batches / cycles',
+            'fish.batch.manage' => 'Manage fish batches / cycles',
         ],
 
         'FCR & Growth' => [
@@ -102,9 +118,29 @@ return [
             'party.transaction.create' => 'Record party transactions',
         ],
 
+        /*
+        | Pond Ledger (Phase 5 — ENFORCED).
+        | `ledger.view` gates the money entries (transactions list + create);
+        | the `pond_ledger.*` keys below gate the complete pond transaction/history
+        | system: the ledger timeline, Stocking, Death (Mortality) and Transfers.
+        |
+        | Stocking/Mortality write the SAME tables as the Fish Stock module — the
+        | permission pair lets a role contribute records to the pond ledger without
+        | also holding the Fish Stock keys (and vice-versa).
+        */
+        'Pond Ledger' => [
+            'ledger.view' => 'View the pond ledger (money entries)',
+            'ledger.create' => 'Record pond ledger entries',
+            'ledger.delete' => 'Delete pond ledger entries',
+            'pond_ledger.view' => 'View the pond ledger timeline',
+            'pond_ledger.stocking.create' => 'Record stockings (New Stock)',
+            'pond_ledger.mortality.create' => 'Record mortality (Death)',
+            'pond_ledger.transfer.create' => 'Record pond transfers',
+            'pond_ledger.transfer.delete' => 'Delete pond transfers',
+        ],
+
         'Finance' => [
             'finance.view' => 'View finance',
-            'ledger.view' => 'View ledgers',
             'income.create' => 'Record income',
             'income.update' => 'Update income',
             'income.delete' => 'Delete income',
@@ -183,9 +219,12 @@ return [
             'is_system' => true,
             'permissions' => [
                 'dashboard.view',
-                'pond.view', 'pond.create', 'pond.update', 'pond.delete', 'pond.type.manage',
+                'pond.view', 'pond.create', 'pond.update', 'pond.delete',
+                'pond_type.view', 'pond_type.create', 'pond_type.update', 'pond_type.delete',
                 'feed.view', 'feed.purchase', 'feed.usage', 'feed.adjust', 'feed.type.manage',
+                'feed.schedule.manage', 'feed.feeding',
                 'fish.view', 'fish.stock', 'fish.mortality', 'fish.harvest', 'fish.species.manage',
+                'fish.batch.view', 'fish.batch.manage',
                 'fcr.view', 'fcr.inspection.create', 'fcr.inspection.update', 'fcr.schedule.manage',
                 'growth.view', 'growth.create',
                 'sales.view', 'sales.create', 'sales.update', 'sales.delete', 'sales.payment.create',
@@ -193,7 +232,10 @@ return [
                 'supplier.view', 'supplier.create', 'supplier.update', 'supplier.delete',
                 'supplier.purchase.create', 'supplier.payment.create',
                 'party.view', 'party.create', 'party.update', 'party.delete', 'party.transaction.create',
-                'finance.view', 'ledger.view',
+                'finance.view', 'ledger.view', 'ledger.create', 'ledger.delete',
+                'pond_ledger.view', 'pond_ledger.stocking.create',
+                'pond_ledger.mortality.create',
+                'pond_ledger.transfer.create', 'pond_ledger.transfer.delete',
                 'income.create', 'income.update', 'income.delete',
                 'expense.create', 'expense.update', 'expense.delete', 'expense.category.manage',
                 'reports.view', 'reports.export', 'reports.financial',
@@ -212,13 +254,19 @@ return [
             'is_system' => true,
             'permissions' => [
                 'dashboard.view',
-                'pond.view', 'pond.create', 'pond.update', 'pond.type.manage',
+                'pond.view', 'pond.create', 'pond.update',
+                'pond_type.view', 'pond_type.create', 'pond_type.update', 'pond_type.delete',
                 'feed.view', 'feed.purchase', 'feed.usage', 'feed.adjust', 'feed.type.manage',
+                'feed.schedule.manage', 'feed.feeding',
                 'fish.view', 'fish.stock', 'fish.mortality', 'fish.harvest', 'fish.species.manage',
+                'fish.batch.view', 'fish.batch.manage',
                 'fcr.view', 'fcr.inspection.create', 'fcr.inspection.update', 'fcr.schedule.manage',
                 'growth.view', 'growth.create',
                 'sales.view', 'customer.view', 'supplier.view', 'party.view',
-                'finance.view', 'ledger.view',
+                'finance.view', 'ledger.view', 'ledger.create', 'ledger.delete',
+                'pond_ledger.view', 'pond_ledger.stocking.create',
+                'pond_ledger.mortality.create',
+                'pond_ledger.transfer.create', 'pond_ledger.transfer.delete',
                 'reports.view',
                 'company.view', 'users.view', 'roles.view', 'settings.view',
             ],
@@ -230,14 +278,18 @@ return [
             'is_system' => true,
             'permissions' => [
                 'dashboard.view',
-                'pond.view', 'feed.view', 'fish.view', 'fcr.view', 'growth.view',
+                'pond.view', 'pond_type.view',
+                'feed.view', 'fish.view', 'fcr.view', 'growth.view',
                 'sales.view', 'sales.create', 'sales.update', 'sales.payment.create',
                 'customer.view', 'customer.create', 'customer.update', 'customer.payment.create',
                 'supplier.view', 'supplier.purchase.create', 'supplier.payment.create',
                 'party.view', 'party.create', 'party.transaction.create',
-                'finance.view', 'ledger.view',
+                'finance.view', 'ledger.view', 'ledger.create', 'ledger.delete',
+                'pond_ledger.view', 'pond_ledger.stocking.create', 'pond_ledger.mortality.create',
+                'pond_ledger.transfer.create',
                 'income.create', 'income.update', 'expense.create', 'expense.update',
                 'expense.category.manage',
+                'feed.schedule.manage', 'feed.feeding',
                 'reports.view', 'reports.export', 'reports.financial',
                 'company.view',
             ],
@@ -249,9 +301,10 @@ return [
             'is_system' => true,
             'permissions' => [
                 'dashboard.view',
-                'pond.view',
-                'feed.view', 'feed.usage',
-                'fish.view', 'fish.stock', 'fish.mortality',
+                'pond.view', 'pond_type.view',
+                'feed.view', 'feed.usage', 'feed.feeding',
+                'fish.view', 'fish.stock', 'fish.mortality', 'fish.batch.view',
+                'pond_ledger.view', 'pond_ledger.stocking.create', 'pond_ledger.mortality.create',
                 'fcr.view', 'fcr.inspection.create', 'growth.view', 'growth.create',
             ],
         ],
@@ -262,7 +315,7 @@ return [
             'is_system' => true,
             'permissions' => [
                 'dashboard.view',
-                'pond.view', 'fish.view',
+                'pond.view', 'pond_type.view', 'fish.view',
                 'sales.view', 'sales.create', 'sales.payment.create',
                 'customer.view', 'customer.create', 'customer.payment.create',
                 'reports.view',
@@ -276,10 +329,10 @@ return [
             'is_system' => true,
             'permissions' => [
                 'dashboard.view',
-                'pond.view', 'feed.view', 'fish.view',
+                'pond.view', 'pond_type.view', 'feed.view', 'fish.view',
                 'fcr.view', 'growth.view',
                 'sales.view', 'customer.view', 'supplier.view', 'party.view',
-                'finance.view', 'ledger.view',
+                'finance.view', 'ledger.view', 'pond_ledger.view',
                 'reports.view',
                 'company.view',
             ],

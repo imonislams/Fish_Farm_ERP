@@ -27,11 +27,14 @@
     @endif
 
     @if ($name && $errors->has($name))
-    <p class="flex items-center gap-1 text-xs text-danger" role="alert">
-        <svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z" />
+    <p class="flex items-start gap-1.5 text-xs font-medium text-danger"
+        id="{{ $name }}-error" role="alert">
+        <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
+            viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 9v4m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z" />
         </svg>
-        {{ $errors->first($name) }}
+        <span>{{ $errors->first($name) }}</span>
     </p>
     @endif
 </div>

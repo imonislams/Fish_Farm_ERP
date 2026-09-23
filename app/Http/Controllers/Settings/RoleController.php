@@ -8,7 +8,6 @@ use App\Http\Requests\Settings\UpdateRoleRequest;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Services\Settings\RoleService;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 
@@ -28,27 +27,41 @@ class RoleController extends Controller
         private readonly RoleService $roleService,
     ) {}
 
-    /** Role list with user/permission counts. */
-    public function index(): View
+    /** Role list with user/permission counts (Inertia/React). */
+    public function index(): \Inertia\Response
     {
         $roles = Role::query()
             ->withCount(['users', 'permissions'])   // avoids N+1
             ->orderByDesc('is_system')
             ->orderBy('label')
-            ->get();
+            ->get()
+            ->map(fn (Role $role): array => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'label' => $role->label,
+                'description' => $role->description,
+                'is_system' => (bool) $role->is_system,
+                'permissions_count' => $role->permissions_count,
+                'users_count' => $role->users_count,
+                'urls' => [
+                    'edit' => route('settings.roles.edit', $role, absolute: false),
+                    'destroy' => route('settings.roles.destroy', $role, absolute: false),
+                ],
+            ])
+            ->all();
 
-        return view('settings.roles.index', [
+        return \Inertia\Inertia::render('Settings/Roles/Index', [
             'title' => 'Roles',
             'roles' => $roles,
         ]);
     }
 
-    /** Show the create form with the grouped permission matrix. */
-    public function create(): View
+    /** Show the create form with the grouped permission matrix (Inertia/React). */
+    public function create(): \Inertia\Response
     {
-        return view('settings.roles.create', [
+        return \Inertia\Inertia::render('Settings/Roles/Create', [
             'title' => 'Create Role',
-            'groups' => $this->permissionGroups(),
+            'groups' => $this->permissionGroups()->all(),
             'selected' => old('permissions', []),
         ]);
     }
@@ -63,15 +76,21 @@ class RoleController extends Controller
             ->with('success', "Role \"{$role->label}\" created.");
     }
 
-    /** Show the edit form (details + permission matrix). */
-    public function edit(Role $role): View
+    /** Show the edit form (details + permission matrix) — Inertia/React. */
+    public function edit(Role $role): \Inertia\Response
     {
         $role->load('permissions:id,name');
 
-        return view('settings.roles.edit', [
+        return \Inertia\Inertia::render('Settings/Roles/Edit', [
             'title' => 'Edit Role',
-            'role' => $role,
-            'groups' => $this->permissionGroups(),
+            'role' => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'label' => $role->label,
+                'description' => $role->description,
+                'is_system' => (bool) $role->is_system,
+            ],
+            'groups' => $this->permissionGroups()->all(),
             'selected' => old('permissions', $role->permissions->pluck('name')->all()),
         ]);
     }
@@ -120,7 +139,10 @@ class RoleController extends Controller
             ->groupBy('group')
             ->map(fn($permissions, $group): array => [
                 'group' => $group,
-                'permissions' => $permissions,
+                'permissions' => $permissions->map(fn ($p): array => [
+                    'name' => $p->name,
+                    'label' => $p->label,
+                ])->values()->all(),
             ])
             ->values();
     }

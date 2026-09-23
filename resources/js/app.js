@@ -1,38 +1,29 @@
 /**
- * Fish Farm ERP — JavaScript entry point.
+ * Fish Farm ERP — legacy Blade entry point.
  *
- * Layered as:
- *   app.js            → bootstraps everything (this file)
- *   network.js        → online/offline awareness
- *   pwa.js            → service worker registration + updates
- *   components/*.js   → isolated UI interactions
+ * The authenticated application is a full Inertia + React SPA (resources/js/app.jsx).
+ * This entry exists for the few remaining server-rendered pages only — the login
+ * screen (auth/login.blade.php) and the offline placeholder — and for PWA wiring.
  *
- * Rules (see docs/ARCHITECTURE.md):
- *   - UI interactions only. No business calculations, no data shaping.
- *   - No frontend framework. Vanilla JS + Vite only.
+ * It boots ONLY what those pages use:
+ *   - server flash toasts          (components/toast.js)
+ *   - online/offline awareness     (network.js)
+ *   - form submission feedback     (components/form-guards.js)
+ *   - service worker registration  (pwa.js)
+ *
+ * Rules (docs/ARCHITECTURE.md): UI interaction only — no business logic, no data
+ * shaping, no framework. Every module is a guarded no-op when its DOM is absent.
  */
-import './bootstrap';
-
 import { initNetworkStatus } from './network';
 import { initPwa } from './pwa';
-import { initCollapse, initDeclarativeUI } from './components/ui';
-import { initFormGuards } from './components/form-guards';
-import { initSidebar, sidebar } from './components/sidebar';
 import { initToasts } from './components/toast';
-import { initConfirmModal } from './components/confirm-modal';
-import { initPermissionMatrix } from './components/permission-matrix';
-
-// Expose the sidebar store so declarative markup can call $store.sidebar.*
-window.$store = { sidebar };
+import { initFormGuards } from './components/form-guards';
+import { initLoginForm } from './components/login';
 
 function boot() {
-    initDeclarativeUI();
-    initCollapse();
-    initSidebar();
     initToasts();
-    initConfirmModal();
-    initPermissionMatrix();
     initFormGuards();
+    initLoginForm();
     initNetworkStatus();
     initPwa();
 }

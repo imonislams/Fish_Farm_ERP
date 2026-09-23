@@ -16,10 +16,12 @@ final class Money
             return '—';
         }
 
-        $formatted = number_format((float) $amount, 2);
+        $value = (float) $amount;
+        // Mirror the React `money()` formatter EXACTLY: a negative sign sits
+        // between the symbol and the digits, and there is no space after the
+        // symbol (e.g. ৳-19,155.00). Keeps PHP and JS output identical.
+        $formatted = ($value < 0 ? '-' : '') . number_format(abs($value), 2);
 
-        return $withSymbol
-            ? trim(config('fishfarm.currency_symbol', '৳') . ' ' . $formatted)
-            : $formatted;
+        return $withSymbol ? Currency::symbol() . $formatted : $formatted;
     }
 }

@@ -32,13 +32,14 @@ return [
         'permission' => 'dashboard.view',
     ],
 
+    /* Phase 2 — IMPLEMENTED. Visibility follows the granular pond_type.* keys. */
     [
         'label' => 'Pond Management',
         'icon' => 'droplet',
         'children' => [
             ['label' => 'All Ponds', 'route' => 'ponds.index', 'permission' => 'pond.view'],
             ['label' => 'New Pond', 'route' => 'ponds.create', 'permission' => 'pond.create'],
-            ['label' => 'Pond Types', 'route' => 'ponds.types.index', 'permission' => 'pond.type.manage'],
+            ['label' => 'Pond Types', 'route' => 'ponds.types.index', 'permission' => 'pond_type.view'],
             ['label' => 'Pond Status', 'route' => 'ponds.status', 'permission' => 'pond.view'],
         ],
     ],
@@ -47,10 +48,12 @@ return [
         'label' => 'Pond Ledger',
         'icon' => 'book',
         'children' => [
-            ['label' => 'Ledger Dashboard', 'route' => 'ledger.index', 'permission' => 'ledger.view'],
-            ['label' => 'Pond Transactions', 'route' => 'ledger.transactions', 'permission' => 'ledger.view'],
-            ['label' => 'Income', 'route' => 'finance.income.index', 'permission' => 'income.create'],
-            ['label' => 'Expense', 'route' => 'finance.expenses.index', 'permission' => 'expense.create'],
+            ['label' => 'Pond Ledger', 'route' => 'ledger.index', 'permission' => 'pond_ledger.view'],
+            ['label' => 'Stocking', 'route' => 'ledger.stocking', 'permission' => 'pond_ledger.view'],
+            ['label' => 'Death (Mortality)', 'route' => 'ledger.mortality', 'permission' => 'pond_ledger.view'],
+            ['label' => 'Transfers', 'route' => 'ledger.transfers', 'permission' => 'pond_ledger.view'],
+            ['label' => 'Money Entries', 'route' => 'ledger.transactions', 'permission' => 'ledger.view'],
+            ['label' => 'New Entry', 'route' => 'ledger.transactions.create', 'permission' => 'ledger.create'],
         ],
     ],
 
@@ -63,6 +66,9 @@ return [
             ['label' => 'Food Stock', 'route' => 'feed.stock', 'permission' => 'feed.view'],
             ['label' => 'Food Purchase', 'route' => 'feed.purchases.index', 'permission' => 'feed.purchase'],
             ['label' => 'Food Usage', 'route' => 'feed.usages.index', 'permission' => 'feed.usage'],
+            ['label' => 'Feeding', 'route' => 'feed.feedings.index', 'permission' => 'feed.view'],
+            ['label' => 'Feeding Schedules', 'route' => 'feed.schedules.index', 'permission' => 'feed.schedule.manage'],
+            ['label' => 'Stock Adjustment', 'route' => 'feed.adjustments.index', 'permission' => 'feed.adjust'],
         ],
     ],
 
@@ -86,6 +92,7 @@ return [
         'icon' => 'fish',
         'children' => [
             ['label' => 'Stock Dashboard', 'route' => 'fish.index', 'permission' => 'fish.view'],
+            ['label' => 'Fish Batches', 'route' => 'fish.batches.index', 'permission' => 'fish.batch.view'],
             ['label' => 'Fish Species', 'route' => 'fish.species.index', 'permission' => 'fish.species.manage'],
             ['label' => 'Stock In / Stocking', 'route' => 'fish.stockings.index', 'permission' => 'fish.stock'],
             ['label' => 'Mortality', 'route' => 'fish.mortalities.index', 'permission' => 'fish.mortality'],
@@ -126,6 +133,16 @@ return [
             ['label' => 'Add Party', 'route' => 'parties.create', 'permission' => 'party.create'],
             ['label' => 'Party Transactions', 'route' => 'parties.transactions', 'permission' => 'party.transaction.create'],
             ['label' => 'Party Ledger', 'route' => 'parties.ledger', 'permission' => 'party.view'],
+        ],
+    ],
+
+    [
+        'label' => 'Finance',
+        'icon' => 'report',
+        'children' => [
+            ['label' => 'Income', 'route' => 'finance.income.index', 'permission' => 'finance.view'],
+            ['label' => 'Expenses', 'route' => 'finance.expenses.index', 'permission' => 'finance.view'],
+            ['label' => 'Expense Categories', 'route' => 'finance.categories.index', 'permission' => 'finance.view'],
         ],
     ],
 

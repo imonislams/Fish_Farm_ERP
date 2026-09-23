@@ -54,14 +54,25 @@ final class FcrResult
     /** Interpretation band, for reporting colour/tone only (not business logic). */
     public function band(): string
     {
-        if ($this->fcr === null) {
+        return self::bandFor($this->fcr);
+    }
+
+    /**
+     * The interpretation band for a bare ratio.
+     *
+     * Defined ONCE here so a farm-average figure (which has no FcrResult of its
+     * own) is banded by exactly the same rule as a single pond's result.
+     */
+    public static function bandFor(?float $fcr): string
+    {
+        if ($fcr === null) {
             return 'unknown';
         }
 
         return match (true) {
-            $this->fcr <= 1.2 => 'excellent',
-            $this->fcr <= 1.6 => 'good',
-            $this->fcr <= 2.0 => 'fair',
+            $fcr <= 1.2 => 'excellent',
+            $fcr <= 1.6 => 'good',
+            $fcr <= 2.0 => 'fair',
             default => 'poor',
         };
     }

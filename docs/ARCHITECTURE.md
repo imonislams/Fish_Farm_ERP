@@ -97,13 +97,18 @@ Key services (existing or planned):
 | `DashboardMetricsService`   | dashboard KPI/analytics aggregation          |
 | `Fcr\FcrCalculator`         | FCR formula + edge cases (implemented)       |
 | `Fcr\FcrResult`             | immutable FCR result value object            |
-| `Fish\FishStockService`     | fish stock movement rules                    |
-| `Feed\FeedStockService`     | feed stock movement rules                    |
+| `Fish\FishStockService`     | fish stock movement rules, live-stock definition, non-negative guard, derived weights, all writes (implemented) |
+| `Fish\FishSpeciesService`   | fish species writes + in-use delete guard (implemented) |
+| `Feed\FeedStockService`     | feed stock movement rules, stock definition, non-negative guard, derived cost, low-stock signal, all writes (implemented) |
+| `Feed\FeedTypeService`      | feed type writes + in-use delete guard (implemented) |
 | `Sales\SalesService`        | sale creation, items, stock + ledger effects |
 | `Finance\LedgerRules`       | balance/due/profit sign conventions          |
 | `Finance\CustomerBalanceService` | customer dues                          |
 | `Finance\SupplierBalanceService` | supplier dues                          |
+| `Pond\PondService`          | filtered/paginated pond query, `status → is_active`, real status counts (implemented) |
+| `Pond\PondTypeService`      | pond-type writes + "in use cannot be deleted" guard (implemented) |
 | `Pond\PondLedgerService`    | pond ledger entries                          |
+| `Pond\PondLedgerService`    | pond ledger entries: write/reverse, per-pond profit, category totals (implemented) |
 | `Reports\ReportService`     | reusable report query + aggregation          |
 
 ### Model — `app/Models/`
@@ -140,6 +145,13 @@ path. Guards that must not live only in the UI:
 | `UserService` | cannot deactivate/delete yourself; cannot delete the last active Super Admin; role sync is transactional |
 | `RoleService` | cannot delete a system role; cannot delete a role still assigned to users |
 | `CompanyService` | logo replace/remove deletes the old file in the same transaction |
+| `PondTypeService` | a pond type still referenced by ponds cannot be deleted (FK `restrictOnDelete` + a clear `DomainException`) |
+| `PondService` | `is_active` is derived from `status`, never taken from input; a pond holding live fish (or with movement history) cannot be deleted |
+| `FishStockService` | fish stock can never go negative (guard on a row-locked pond, before writing); derived weights are computed once here |
+| `FishSpeciesService` | a species used by any stocking/harvest cannot be deleted |
+| `FeedStockService` | feed stock can never go negative (guard on a row-locked feed type, before writing); an adjustment requires a direction and a reason |
+| `FeedTypeService` | a feed type used by any purchase/usage/adjustment cannot be deleted |
+| `PondLedgerService` | a ledger row is written only through `record()`; a generated entry cannot be deleted by hand (only `manual` ones); the sign convention is delegated to `LedgerRules` |
 
 ### Blade — `resources/views/**`
 **Belongs:** presentation only — layout, loops, conditionals, `number_format`

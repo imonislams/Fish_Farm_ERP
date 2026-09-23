@@ -4,6 +4,7 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../**/*.jsx';
 
 /*
 |--------------------------------------------------------------------------
@@ -161,6 +162,50 @@
         flex-wrap: wrap;
         gap: 0.375rem;
         justify-content: flex-end;
+    }
+
+    /*
+     | Auth brand-panel texture — a faint fish-scale / wave repeat built from the
+     | existing identity colours. Purely decorative (aria-hidden) and static: it is
+     | a background, not an animation, so the page stays fast.
+    */
+    .auth-brand-pattern {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.5;
+        background-image:
+            radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.10) 1px, transparent 0),
+            radial-gradient(120% 90% at 100% 0%, rgb(255 255 255 / 0.06) 0%, transparent 55%);
+        background-size: 22px 22px, 100% 100%;
+        -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 25%, #000 75%, transparent 100%);
+        mask-image: linear-gradient(180deg, transparent 0%, #000 25%, #000 75%, transparent 100%);
+    }
+
+    /*
+     | One subtle entrance for the auth form card. Short and one-shot — the ERP
+     | must feel instant. Disabled for users who prefer reduced motion.
+    */
+    .auth-enter {
+        animation: auth-enter 0.28s ease-out both;
+    }
+
+    @keyframes auth-enter {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .auth-enter {
+            animation: none;
+        }
     }
 }
 

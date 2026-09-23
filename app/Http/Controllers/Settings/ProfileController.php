@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\UpdateProfileRequest;
 use App\Models\User;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
 
@@ -20,16 +19,24 @@ use Illuminate\Support\Facades\Hash;
  */
 class ProfileController extends Controller
 {
-    /** Show the profile page. */
-    public function edit(): View
+    /** Show the profile page (Inertia/React). */
+    public function edit(): \Inertia\Response
     {
         /** @var User $user */
         $user = auth()->user();
         $user->load(['roles:id,name,label', 'company']);
 
-        return view('settings.profile.edit', [
+        return \Inertia\Inertia::render('Settings/Profile/Edit', [
             'title' => 'User Profile',
-            'user' => $user,
+            'user' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->roles->first()?->label,
+                'is_active' => (bool) $user->is_active,
+                'company' => $user->company?->name,
+                'created_at' => $user->created_at?->format('d M Y'),
+            ],
+            'permissions' => $user->permissionNames()->all(),
         ]);
     }
 

@@ -15,44 +15,84 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
+@php
+// Brand identity comes from the ONE company source — never hard-coded.
+$brandName = \App\Support\CompanyContext::name();
+$brandLogo = \App\Support\CompanyContext::logoUrl();
+$brandInitials = \App\Support\CompanyContext::initials();
+@endphp
+
 <body class="min-h-screen bg-background text-text">
 
     <div class="grid min-h-screen lg:grid-cols-2">
 
         {{-- Brand panel --}}
-        <aside class="gradient-hero hidden flex-col justify-between p-10 text-white lg:flex">
-            <div class="flex items-center gap-3">
-                <span class="grid h-11 w-11 place-items-center rounded-control bg-white/15 text-lg font-bold">F</span>
-                <span class="text-lg font-semibold">{{ config('app.name') }}</span>
+        <aside class="gradient-hero relative hidden flex-col justify-between overflow-hidden p-10 text-white lg:flex xl:p-14">
+
+            {{-- Subtle decorative scale texture (pure CSS, non-interactive). --}}
+            <div class="auth-brand-pattern" aria-hidden="true"></div>
+
+            <div class="relative flex items-center gap-3">
+                <x-auth.brand-mark :logo="$brandLogo" :initials="$brandInitials"
+                    class="h-11 w-11 text-lg" />
+                <span class="text-lg font-semibold">{{ $brandName }}</span>
             </div>
 
-            <div class="max-w-md">
-                <h1 class="text-3xl font-bold leading-snug">
-                    Manage your entire fish farm from one place.
-                </h1>
-                <p class="mt-3 text-sm text-white/75">
-                    Ponds, fish stock, feed, FCR, sales, customers and accounts &mdash;
-                    built with a real database, not spreadsheets.
+            <div class="relative max-w-md">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
+                    Fish Farm ERP
                 </p>
+
+                <h1 class="mt-3 text-3xl font-bold leading-snug xl:text-4xl">
+                    Manage your farm.
+                    <br>Track your production.
+                    <br>Grow your business.
+                </h1>
+
+                <p class="mt-4 text-sm text-white/75">
+                    Ponds, fish stock, feed, FCR, sales and accounts &mdash; one system,
+                    built on a real database instead of spreadsheets.
+                </p>
+
+                <ul class="mt-8 space-y-3 text-sm text-white/85">
+                    <li class="flex items-center gap-3">
+                        <x-sidebar.icon name="droplet" class="h-4 w-4 shrink-0 text-white/70" />
+                        <span>Pond &amp; water management</span>
+                    </li>
+                    <li class="flex items-center gap-3">
+                        <x-sidebar.icon name="chart" class="h-4 w-4 shrink-0 text-white/70" />
+                        <span>Feed, FCR &amp; production analytics</span>
+                    </li>
+                    <li class="flex items-center gap-3">
+                        <x-sidebar.icon name="cart" class="h-4 w-4 shrink-0 text-white/70" />
+                        <span>Sales, customers &amp; accounts</span>
+                    </li>
+                </ul>
             </div>
 
-            <p class="text-xs text-white/60">
-                &copy; {{ date('Y') }} {{ config('app.name') }}
+            <p class="relative text-xs text-white/60">
+                &copy; {{ date('Y') }} {{ $brandName }}
             </p>
         </aside>
 
         {{-- Form panel --}}
-        <main class="flex items-center justify-center px-5 py-12">
-            <div class="w-full max-w-sm">
+        <main class="flex items-center justify-center px-5 py-10 sm:py-12">
+            <div class="w-full max-w-[26rem]">
                 {{-- Compact brand for mobile --}}
-                <div class="mb-8 flex items-center gap-3 lg:hidden">
-                    <span class="gradient-primary grid h-11 w-11 place-items-center rounded-control text-lg font-bold text-white">F</span>
-                    <span class="text-lg font-semibold">{{ config('app.name') }}</span>
+                <div class="mb-7 flex items-center gap-3 lg:hidden">
+                    <x-auth.brand-mark :logo="$brandLogo" :initials="$brandInitials"
+                        class="h-11 w-11 text-lg" gradient />
+                    <div class="min-w-0">
+                        <p class="truncate text-base font-semibold text-text">{{ $brandName }}</p>
+                        <p class="text-xs text-muted">Fish Farm ERP</p>
+                    </div>
                 </div>
 
                 <x-toast.toast-stack />
 
-                {{ $slot }}
+                <div class="surface-card p-6 sm:p-7">
+                    {{ $slot }}
+                </div>
             </div>
         </main>
     </div>

@@ -7,7 +7,6 @@ use App\Http\Requests\Settings\UpdateCompanyRequest;
 use App\Models\Company;
 use App\Services\Settings\CompanyService;
 use App\Support\CompanyContext;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
 /**
@@ -26,16 +25,29 @@ class CompanyController extends Controller
         private readonly CompanyService $companyService,
     ) {}
 
-    /** Show the company settings form. */
-    public function edit(): View
+    /** Show the company settings form (Inertia/React). */
+    public function edit(): \Inertia\Response
     {
         $company = CompanyContext::get();
 
         abort_if($company === null, 404, 'No company has been created yet. Run the seeder.');
 
-        return view('settings.company.edit', [
+        return \Inertia\Inertia::render('Settings/Company/Edit', [
             'title' => 'Company Settings',
-            'company' => $company,
+            'company' => [
+                'id' => $company->id,
+                'name' => $company->name,
+                'code' => $company->code,
+                'phone' => $company->phone,
+                'email' => $company->email,
+                'address' => $company->address,
+                'currency' => $company->currency,
+                'timezone' => $company->timezone,
+                'status' => $company->status,
+                'logo_url' => $company->logo ? asset('storage/' . $company->logo) : null,
+                'created_at' => $company->created_at?->format('d M Y'),
+                'updated_at' => $company->updated_at?->diffForHumans(),
+            ],
             'timezones' => $this->timezones(),
             'currencies' => $this->currencies(),
         ]);

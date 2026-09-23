@@ -10,12 +10,16 @@ Route files: `routes/web.php` (application), `routes/auth.php` (authentication),
 
 ## 1. Rules
 
-1. **Every route has a name.** Blade uses `route('name')`, never a raw URL.
+1. **Every route has a name.** React resolves URLs from the shared `routes` prop
+   (`props.routes['ponds.index']`); Blade uses `route('name')`. Neither hard-codes a URL.
 2. Names follow the module prefix: `ponds.index`, `ponds.create`, `fcr.growth`.
 3. Route groups use `Route::prefix(...)->name('module.')`.
-4. Module pages not implemented yet resolve to `Settings\PendingController`,
-   which renders an honest "not implemented" page. **Nothing fakes data.**
-5. Authorization middleware attaches per group as modules are implemented.
+4. Literal segments (`/create`, `/export`, `/ledger`, `/types`, `/status`) are
+   declared **before** any `{wildcard}` so they are never captured by model binding.
+5. Every module route carries `permission:*` middleware, and the controller also
+   re-asserts the policy (`Gate::authorize`), so an id in the URL cannot reach a
+   record the user is not permitted to act on. Every module is implemented and
+   returns an Inertia/React page — **nothing fakes data**.
 6. `route('login')` / `route('logout')` are referenced defensively with
    `Route::has()` so the UI works before auth routes exist.
 
@@ -28,17 +32,26 @@ Route files: `routes/web.php` (application), `routes/auth.php` (authentication),
 
 /fish-farm/ponds                    → ponds.index
 /fish-farm/ponds/create             → ponds.create
-/fish-farm/ponds/types              → ponds.types.index
 /fish-farm/ponds/status             → ponds.status
+/fish-farm/ponds/types              → ponds.types.index
+/fish-farm/ponds/types/create       → ponds.types.create
+/fish-farm/ponds/types/{pondType}/edit → ponds.types.edit
 
 /fish-farm/pond-ledger              → ledger.index
 /fish-farm/pond-ledger/transactions → ledger.transactions
+/fish-farm/pond-ledger/transactions/create → ledger.transactions.create
 
 /fish-farm/feed                     → feed.index
-/fish-farm/feed/types               → feed.types.index
 /fish-farm/feed/stock               → feed.stock
+/fish-farm/feed/types               → feed.types.index
+/fish-farm/feed/types/create        → feed.types.create
+/fish-farm/feed/types/{feedType}/edit → feed.types.edit
 /fish-farm/feed/purchases           → feed.purchases.index
+/fish-farm/feed/purchases/create    → feed.purchases.create
 /fish-farm/feed/usages              → feed.usages.index
+/fish-farm/feed/usages/create       → feed.usages.create
+/fish-farm/feed/adjustments         → feed.adjustments.index
+/fish-farm/feed/adjustments/create  → feed.adjustments.create
 
 /fish-farm/fcr                      → fcr.index
 /fish-farm/fcr/inspections          → fcr.inspections.index
@@ -51,9 +64,14 @@ Route files: `routes/web.php` (application), `routes/auth.php` (authentication),
 
 /fish-farm/fish                     → fish.index
 /fish-farm/fish/species             → fish.species.index
+/fish-farm/fish/species/create      → fish.species.create
+/fish-farm/fish/species/{species}/edit → fish.species.edit
 /fish-farm/fish/stockings           → fish.stockings.index
+/fish-farm/fish/stockings/create    → fish.stockings.create
 /fish-farm/fish/mortalities         → fish.mortalities.index
+/fish-farm/fish/mortalities/create  → fish.mortalities.create
 /fish-farm/fish/harvests            → fish.harvests.index
+/fish-farm/fish/harvests/create     → fish.harvests.create
 
 /fish-farm/sales                    → sales.index
 /fish-farm/sales/list               → sales.list
@@ -127,30 +145,42 @@ All `/fish-farm/*` and `/settings/*` routes are inside a
 carries a `permission:` middleware.
 
 ## 3. Verified route count
-`php artisan route:list --except-vendor` currently reports **74 routes**.
+`php artisan route:list --except-vendor` currently reports **211 routes**.
 
-**Phase 1 (implemented & enforced):** authentication, dashboard, and all 18
-settings routes.
+Every module (dashboard, ponds, pond ledger, feed, FCR & growth, fish stock,
+sales, customers, suppliers, parties, finance, reports, settings) is implemented
+and returns an Inertia/React page. Each `/fish-farm/*` route is `auth` +
+`permission:*` gated, and the controller re-asserts the policy per record.
 
-**Phase 2+ (not implemented yet):** the `/fish-farm/*` module routes resolve to
-`PendingController`, which renders an honest “not implemented” page and invents
-no data. They are already permission-gated, so they become reachable the moment
-their module is built and the role is granted the permission.
+There is no placeholder/pending controller: a route either renders real data or
+an honest empty state — never a fabricated figure.
 
-## 4. Conventional route names for write operations
+## 4. Route names for write operations
+Modules follow Laravel resource conventions so the shape stays predictable.
+**Pond Management (Phase 2) is implemented**, with these routes — each also
+carrying `permission:` middleware:
 
-When a module is implemented, follow Laravel resource conventions so the shape
-stays predictable:
+| Action | Method      | URI                                | Route name             | Permission           |
+| ------ | ----------- | ---------------------------------- | ---------------------- | -------------------- |
+| list   | GET         | `/fish-farm/ponds`                 | `ponds.index`          | `pond.view`          |
+| create | GET         | `/fish-farm/ponds/create`          | `ponds.create`         | `pond.create`        |
+| store  | POST        | `/fish-farm/ponds`                 | `ponds.store`          | `pond.create`        |
+| show   | GET         | `/fish-farm/ponds/{pond}`          | `ponds.show`           | `pond.view`          |
+| edit   | GET         | `/fish-farm/ponds/{pond}/edit`     | `ponds.edit`           | `pond.update`        |
+| update | PUT/PATCH   | `/fish-farm/ponds/{pond}`          | `ponds.update`         | `pond.update`        |
+| delete | DELETE      | `/fish-farm/ponds/{pond}`          | `ponds.destroy`        | `pond.delete`        |
+| status | GET         | `/fish-farm/ponds/status`          | `ponds.status`         | `pond.view`          |
+| types  | GET         | `/fish-farm/ponds/types`           | `ponds.types.index`    | `pond_type.view`     |
+| types create | GET   | `/fish-farm/ponds/types/create`    | `ponds.types.create`   | `pond_type.create`   |
+| types store  | POST  | `/fish-farm/ponds/types`           | `ponds.types.store`    | `pond_type.create`   |
+| types edit   | GET   | `/fish-farm/ponds/types/{pondType}/edit` | `ponds.types.edit` | `pond_type.update` |
+| types update | PUT   | `/fish-farm/ponds/types/{pondType}`| `ponds.types.update`   | `pond_type.update`   |
+| types delete | DELETE| `/fish-farm/ponds/types/{pondType}`| `ponds.types.destroy`  | `pond_type.delete`   |
 
-| Action | Method      | URI                      | Route name            |
-| ------ | ----------- | ------------------------ | --------------------- |
-| list   | GET         | `/fish-farm/ponds`       | `ponds.index`         |
-| create | GET         | `/fish-farm/ponds/create`| `ponds.create`        |
-| store  | POST        | `/fish-farm/ponds`       | `ponds.store`         |
-| show   | GET         | `/fish-farm/ponds/{pond}`| `ponds.show`          |
-| edit   | GET         | `/fish-farm/ponds/{pond}/edit` | `ponds.edit`    |
-| update | PUT/PATCH   | `/fish-farm/ponds/{pond}`| `ponds.update`        |
-| delete | DELETE      | `/fish-farm/ponds/{pond}`| `ponds.destroy`       |
+> **Ordering rule:** the literal segments `types` and `status` are declared
+> **before** the `/{pond}` wildcard, so they are never captured by route model
+> binding. The type wildcard is `{pondType}`, so a FormRequest must read
+> `$this->route('pondType')` (camelCase), **not** `pond_type`.
 
 Plus module-specific actions (e.g. `feed.usages.store`, `sales.payment.store`).
 

@@ -111,7 +111,7 @@ custom roles have `is_system = false` and are deletable.
 ## 5. Permission keys
 Named `resource.action`, grouped by module. These are **stable identifiers** —
 renaming one requires a migration and a CHANGELOG entry. The catalogue lives in
-`config/permissions.php` (70 keys) and is seeded by `PermissionSeeder`.
+`config/permissions.php` (75 keys) and is seeded by `PermissionSeeder`.
 
 ### Foundation modules — ENFORCED in Phase 1
 | Group       | Keys                                                                    |
@@ -123,17 +123,36 @@ renaming one requires a migration and a CHANGELOG entry. The catalogue lives in
 | Permissions | `permissions.view` `permissions.manage`                                  |
 | Settings    | `settings.view` `settings.update` `notifications.manage`                 |
 
-### Pond
+### Pond — ENFORCED in Phase 2
 `pond.view` `pond.create` `pond.update` `pond.delete`
-`pond.type.manage`
 
-### Feed
+### Pond Types — ENFORCED in Phase 2
+`pond_type.view` `pond_type.create` `pond_type.update` `pond_type.delete`
+
+> The Phase 1 key `pond.type.manage` was **split** into the four
+> `pond_type.*` keys so a role can view the type catalogue without being able to
+> edit or delete from it. The old key is retired (removed by `PermissionSeeder`
+> when re-seeded). `PondTypeService` remains the write-path guard for the
+> "type in use cannot be deleted" rule, independent of the permission.
+
+### Feed — ENFORCED in Phase 4
 `feed.view` `feed.purchase` `feed.usage` `feed.adjust`
 `feed.type.manage`
 
-### Fish stock
+> `feed.view` gates the dashboard/stock page and every list; the write routes
+> carry `feed.purchase` (purchases), `feed.usage` (usage), `feed.adjust` (manual
+> adjustments) and `feed.type.manage` (feed type CRUD). Each controller action
+> also re-asserts its policy, so an id in the URL cannot grant access
+> (docs/PERMISSIONS.md §3).
+
+### Fish stock — ENFORCED in Phase 3
 `fish.view` `fish.stock` `fish.mortality` `fish.harvest`
 `fish.species.manage`
+
+> `fish.view` gates the dashboard and every list; the write routes carry
+> `fish.stock` (stocking), `fish.mortality`, `fish.harvest` and
+> `fish.species.manage` (species CRUD). Each controller action also re-asserts its
+> policy, so an id in the URL cannot grant access (docs/PERMISSIONS.md §3).
 
 ### FCR & Growth
 `fcr.view` `fcr.inspection.create` `fcr.inspection.update`
@@ -155,13 +174,34 @@ renaming one requires a migration and a CHANGELOG entry. The catalogue lives in
 `party.view` `party.create` `party.update` `party.delete`
 `party.transaction.create`
 
+### Pond Ledger — ENFORCED in Phase 5
+`ledger.view` `ledger.create` `ledger.delete`
+`pond_ledger.view` `pond_ledger.stocking.create` `pond_ledger.mortality.create`
+`pond_ledger.transfer.create` `pond_ledger.transfer.delete`
+
+> `ledger.view` gates the ledger dashboard and the transactions list;
+> `ledger.create` / `ledger.delete` gate hand-recorded entries. A generated entry
+> cannot be deleted here at all — its source must be removed, which reverses the
+> entry automatically (docs/BUSINESS_LOGIC.md §4).
+>
+> The Ledger's Stocking and Mortality pages are **view + create** (they write the
+> same tables as Fish Stock through the same service); deleting those movements is
+> done from the Fish Stock module (`fish.stockings.destroy` / `fish.mortalities.destroy`).
+> The former `pond_ledger.stocking.delete` / `pond_ledger.mortality.delete` keys gated
+> nothing and were removed.
+
 ### Finance
 `finance.view` `income.create` `income.update` `income.delete`
 `expense.create` `expense.update` `expense.delete`
-`expense.category.manage` `ledger.view`
+`expense.category.manage`
 
 ### Reports
 `reports.view` `reports.export` `reports.financial`
+
+> `reports.view` gates the report pages; `reports.export` gates the CSV download
+> route (`/{report}/export`) separately, so a role may read a report without being
+> able to export it; `reports.financial` additionally gates the Income, Expense and
+> Profit & Loss reports.
 
 ### Administration
 Replaced in Phase 1 by the granular foundation keys listed at the top of this
@@ -175,14 +215,19 @@ key — permissions are per-action so a role can be granted `users.view` without
 
 | Permission group | Super Admin | Farm Admin | Manager | Accountant | Farm Staff | Sales Staff | Viewer |
 | ---------------- | :---------: | :--------: | :-----: | :--------: | :--------: | :---------: | :----: |
-| pond.*           | ✓ | ✓ | ✓ | – | view | view | view |
-| feed.*           | ✓ | ✓ | ✓ | view | usage | – | view |
+| pond.*           | ✓ | ✓ | ✓ | view | view | view | view |
+| pond_type.*      | ✓ | ✓ | ✓ | view | view | view | view |
+| fish.*           | ✓ | ✓ | ✓ | view | stock, mortality | view | view |
+| fish.species.manage | ✓ | ✓ | ✓ | – | – | – | – |
+| feed.*           | ✓ | ✓ | ✓ | view | view, usage | – | view |
+| feed.type.manage | ✓ | ✓ | ✓ | – | – | – | – |
 | fish.*           | ✓ | ✓ | ✓ | view | stock/mortality | view | view |
 | fcr.*            | ✓ | ✓ | ✓ | view | create | – | view |
 | sales.*          | ✓ | ✓ | ✓ | ✓ | – | ✓ | view |
 | customer.*       | ✓ | ✓ | ✓ | ✓ | – | ✓ | view |
 | supplier.*       | ✓ | ✓ | ✓ | ✓ | – | – | view |
 | party.*          | ✓ | ✓ | ✓ | ✓ | – | – | view |
+| ledger.*         | ✓ | ✓ | ✓ | ✓ | – | – | view |
 | finance.*        | ✓ | ✓ | view | ✓ | – | – | view |
 | reports.*        | ✓ | ✓ | view | ✓ | – | view | view |
 | company.view     | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |

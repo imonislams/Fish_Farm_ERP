@@ -9,7 +9,6 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\Settings\UserService;
 use App\Support\CompanyContext;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -28,12 +27,13 @@ class UserController extends Controller
         private readonly UserService $userService,
     ) {}
 
-    /** Paginated, searchable user list. */
-    public function index(Request $request): View
+    /** Paginated, searchable user list (Inertia/React). */
+    public function index(Request $request): \Inertia\Response
     {
         $search = trim((string) $request->query('search', ''));
         $status = (string) $request->query('status', '');
         $roleId = $request->query('role');
+        $currentId = auth()->id();
 
         $users = User::query()
             ->with('roles:id,name,label')          // eager load: avoids N+1
@@ -53,22 +53,42 @@ class UserController extends Controller
             ->paginate(config('fishfarm.pagination.default', 15))
             ->withQueryString();
 
-        return view('settings.users.index', [
+        return \Inertia\Inertia::render('Settings/Users/Index', [
             'title' => 'Users',
-            'users' => $users,
-            'roles' => Role::orderBy('label')->get(['id', 'name', 'label']),
-            'search' => $search,
-            'status' => $status,
-            'roleId' => $roleId,
+            'users' => [
+                'data' => collect($users->items())->map(fn (User $u): array => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'role' => $u->roles->first()?->label,
+                    'is_active' => (bool) $u->is_active,
+                    'is_self' => $u->id === $currentId,
+                    'created_at' => $u->created_at?->format('d M Y'),
+                    'urls' => [
+                        'edit' => route('settings.users.edit', $u, absolute: false),
+                        'toggle' => route('settings.users.toggle-active', $u, absolute: false),
+                        'destroy' => route('settings.users.destroy', $u, absolute: false),
+                    ],
+                ])->all(),
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'total' => $users->total(),
+                'from' => $users->firstItem(),
+                'to' => $users->lastItem(),
+                'links' => $users->linkCollection()->toArray(),
+            ],
+            'roles' => Role::orderBy('label')->pluck('label', 'id')->all(),
+            'filters' => ['search' => $search, 'status' => $status, 'role' => $roleId],
+            'currentUserId' => $currentId,
         ]);
     }
 
-    /** Show the create form. */
-    public function create(): View
+    /** Show the create form (Inertia/React). */
+    public function create(): \Inertia\Response
     {
-        return view('settings.users.create', [
+        return \Inertia\Inertia::render('Settings/Users/Create', [
             'title' => 'Create User',
-            'roles' => Role::orderBy('label')->get(['id', 'name', 'label']),
+            'roles' => Role::orderBy('label')->pluck('label', 'id')->all(),
         ]);
     }
 
@@ -86,15 +106,22 @@ class UserController extends Controller
             ->with('success', "User \"{$user->name}\" created.");
     }
 
-    /** Show the edit form. */
-    public function edit(User $user): View
+    /** Show the edit form (Inertia/React). */
+    public function edit(User $user): \Inertia\Response
     {
         $user->load('roles:id,name,label');
 
-        return view('settings.users.edit', [
+        return \Inertia\Inertia::render('Settings/Users/Edit', [
             'title' => 'Edit User',
-            'user' => $user,
-            'roles' => Role::orderBy('label')->get(['id', 'name', 'label']),
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role_id' => $user->roles->first()?->id,
+                'is_active' => (bool) $user->is_active,
+                'is_self' => $user->id === auth()->id(),
+            ],
+            'roles' => Role::orderBy('label')->pluck('label', 'id')->all(),
         ]);
     }
 

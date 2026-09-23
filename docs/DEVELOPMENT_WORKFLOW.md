@@ -72,9 +72,17 @@ wrong.
 13. **No tests unless asked.** Do not add or run test suites by default.
 14. **No Git commits or pushes.** The user controls Git.
 
-### Authorization rules (Phase 1 — enforced)
+### Authorization rules (Phase 1 — enforced; Phase 2 followed the same pattern)
 - **Every protected route needs `permission:` middleware.** Adding a route
   without it is a security bug, not a style issue.
+- **A FormRequest on a bound route must read the parameter by its real route key.**
+  A `{pondType}` parameter exposes the key `pondType` (camelCase), so read
+  `$this->route('pondType')` — reading `pond_type` silently returns `null` and
+  breaks `Rule::unique(...)->ignore(...)`. Verify with
+  `php artisan route:list` (the `params=` column) before relying on a key.
+- **Check what actually exists before calling a framework helper.** `Str::escapeLike()`
+  does not exist in Laravel 12 — an unguarded call made a whole list page return
+  HTTP 500. Prefer an inline escape, and exercise the page after the change.
 - Use route middleware + a FormRequest `authorize()` for page/action checks.
   Add a policy when the module owns records that need per-record checks.
 - `@permission(...)` / `@role(...)` in Blade is **display only**. Never rely on

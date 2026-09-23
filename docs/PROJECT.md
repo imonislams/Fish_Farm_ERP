@@ -214,10 +214,43 @@ duplicating them, and the company record is left untouched if it already exists.
 permissions, company settings, user management, role management, permission
 reference and the user profile are implemented and permission-enforced.
 
-This repository is at the **architecture and documentation foundation** stage.
-The application skeleton, design system, routing layout, service contracts,
-permission architecture, PWA foundation and documentation are in place. Business
-modules are **not** implemented yet.
+**Phase 2 complete — Pond Management**: real `pond_types` and `ponds` tables,
+models, services (`Pond\PondService`, `Pond\PondTypeService`), FormRequests,
+policies, full CRUD, server-side search/filter/pagination, a status overview page
+and an honest pond details page. Canonical pond statuses and units live in
+`config/ponds.php`.
+
+**Phase 3 complete — Fish Stock**: real `fish_species`, `fish_stockings`,
+`fish_mortalities` and `harvests` tables, models with relationships, the
+`Fish\FishStockService` (the single definition of live stock = stocked −
+mortality − harvested, the non-negative guard, derived weights and all writes)
+and `Fish\FishSpeciesService`, FormRequests, policies, species CRUD and the
+stocking/mortality/harvest recording pages plus a stock dashboard. Stock is never
+typed in directly — it is always derived from records, and can never go negative.
+All routes are permission-gated (`pond.*`, `pond_type.*`, `fish.*`) **and**
+policy-checked. Canonical values live in `config/ponds.php` and `config/fish.php`.
+
+**Phase 4 complete — Feed (Food) Management**: real `feed_types`,
+`feed_purchases`, `feed_usages` and `feed_stock_adjustments` tables, models with
+relationships, the `Feed\FeedStockService` (the single definition of feed stock =
+purchases + adjustments-in − usage − adjustments-out, the non-negative guard, the
+derived line cost, the low-stock signal and all writes) and `Feed\FeedTypeService`,
+FormRequests, policies, feed type CRUD, purchase/usage/adjustment recording pages
+and a stock dashboard. Feed stock is never typed in directly, can never go
+negative, and every manual adjustment records a reason.
+
+**Phase 5 complete — Pond Ledger**: a real `pond_ledger_entries` table, the
+`Pond\PondLedgerService` (the single write path `record()`, reversal
+`reverseSource()`, per-pond profit and category totals — delegating the sign
+convention to `Finance\LedgerRules`), a request, a policy, a ledger dashboard and
+a filterable transactions list. `Pond Profit = income − expense`; a loss is shown
+as a loss, never clamped. The pond details page now shows real pond financials.
+Because Sales/Finance do not exist yet, entries can be recorded by hand
+(`source_type = manual`) — the modules will later write through the same service.
+
+Every *other* business module (FCR, sales, customers, suppliers, party, finance,
+reports, notifications) is still **scaffolded only** and renders an honest
+"not implemented" state — no fake data.
 
 For what exists versus what is pending, see:
 - `docs/MODULES.md` — module-by-module status

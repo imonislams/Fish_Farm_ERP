@@ -46,9 +46,24 @@ MySQL (`fish_farm_erp`):
 | `0001_01_01_000003_create_companies_table.php`                    | `companies`                                                 |
 | `0001_01_01_000004_add_company_id_and_is_active_to_users_table.php`| adds `users.company_id` (FK) and `users.is_active`         |
 | `0001_01_01_000005_create_roles_and_permissions_tables.php`       | `roles`, `permissions`, `permission_role`, `role_user`      |
+| `2026_09_22_000001_create_pond_types_table.php`                   | `pond_types` (Phase 2)                                      |
+| `2026_09_22_000002_create_ponds_table.php`                        | `ponds` (Phase 2)                                           |
+| `2026_09_23_000001_create_fish_species_table.php`                 | `fish_species` (Phase 3)                                    |
+| `2026_09_23_000002_create_fish_stockings_table.php`               | `fish_stockings` (Phase 3)                                  |
+| `2026_09_23_000003_create_fish_mortalities_table.php`             | `fish_mortalities` (Phase 3)                                |
+| `2026_09_23_000004_create_harvests_table.php`                     | `harvests` (Phase 3)                                        |
+| `2026_09_24_000001_create_feed_types_table.php`                   | `feed_types` (Phase 4)                                      |
+| `2026_09_24_000002_create_feed_purchases_table.php`               | `feed_purchases` (Phase 4)                                  |
+| `2026_09_24_000003_create_feed_usages_table.php`                  | `feed_usages` (Phase 4)                                     |
+| `2026_09_24_000004_create_feed_stock_adjustments_table.php`       | `feed_stock_adjustments` (Phase 4)                          |
+| `2026_09_25_000001_create_pond_ledger_entries_table.php`          | `pond_ledger_entries` (Phase 5)                             |
 
-**No business/ERP tables exist yet.** No destructive command was used — the
-`users` change is an incremental `ALTER TABLE`, not a rebuild.
+**Phases 2, 3, 4 and 5 have been applied.** The business tables — `pond_types`,
+`ponds`, `fish_species`, `fish_stockings`, `fish_mortalities`, `harvests`,
+`feed_types`, `feed_purchases`, `feed_usages`, `feed_stock_adjustments`,
+`pond_ledger_entries` — exist. No destructive command was used: the `users`
+change was an incremental `ALTER TABLE`, and the Phase 2–5 migrations only
+`CREATE` new tables.
 
 ### Seeded content
 | Seeder                | Creates                                              | Rows |
@@ -59,6 +74,34 @@ MySQL (`fish_farm_erp`):
 
 All three are **idempotent** (`updateOrCreate` + `sync`). No business data is
 seeded — the ERP database stays empty until real records are created.
+
+### Demo / sample data (opt-in — NOT part of `db:seed`)
+
+`DemoDataSeeder` creates **fake business data** (ponds, species, feed types,
+stocking/mortality/harvest/transfer, feed purchases/usage/adjustment and pond
+ledger entries) so the UI can be checked by hand.
+
+It is **deliberately NOT listed in `DatabaseSeeder`**, so `php artisan db:seed`
+never creates fake records. Run it explicitly, on a database you are happy to
+fill with samples:
+
+```powershell
+# create sample data
+php artisan db:seed --class=DemoDataSeeder
+
+# remove everything it created
+php artisan db:seed --class=DemoDataSeeder --command=remove
+```
+
+Notes:
+- Every record is written through the **real services** (`FishStockService`,
+  `FeedStockService`, `PondLedgerService`), so the business rules run exactly as
+  they would from the UI.
+- All names are prefixed `Demo — ` so the rows are obvious and easy to find.
+- `remove()` deletes only the demo rows, children before parents.
+- One feed type (Finisher Feed) is stocked *below* its reorder level on purpose,
+  so the low-stock state is visible; one pond (N-02) has **no** ledger entries so
+  the empty state is visible.
 
 ### Environment prerequisite
 1. Start MySQL/MariaDB in XAMPP.
@@ -72,6 +115,14 @@ to `file` / `sync` so the application boots even before MySQL is started.
 For the first administrator, set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`
 before seeding — otherwise a random password is generated and printed once. See
 `docs/PROJECT.md` §14 and `docs/PERMISSIONS.md` §7a.
+
+### Migration safety check
+
+`php artisan migrate:status` must report **no Pending migrations** before the UI
+is exercised. A feature whose migration has not been run fails at the first
+query (for example, the Pond Ledger timeline reads `reference` columns added by
+`2026_09_26_000002_add_reference_to_stockings_and_mortalities` — until that
+migration runs, the ledger and transfers pages error).
 
 ### Safety rules
 
@@ -129,10 +180,14 @@ before seeding — otherwise a random password is generated and printed once. Se
 - **Columns:** `id`, `permission_id` (FK, cascade), `role_id` (FK, cascade),
   `timestamps`. Unique on `(permission_id, role_id)`.
 
-## 4. Target business entities (NOT created yet)
+## 4. Business entities
 
-The full intended ERP model. This is the **plan**, not the current schema. Build
-it incrementally, one module at a time, keeping `docs/MODULES.md` in step.
+The full intended ERP model. `pond_types`, `ponds` (Phase 2); `fish_species`,
+`fish_stockings`, `fish_mortalities`, `harvests` (Phase 3); `feed_types`,
+`feed_purchases`, `feed_usages`, `feed_stock_adjustments` (Phase 4); and
+`pond_ledger_entries` (Phase 5) are **implemented**; the rest is the **plan**, not
+yet in the schema. Build it incrementally, one module at a time, keeping
+`docs/MODULES.md` in step.
 
 **Note: no `farm_id` / `company_id` column appears on any of these tables.** The
 single company is implicit. Tables reference their *domain* parent (a pond, a
@@ -159,72 +214,140 @@ notifications          settings
 
 Each entry: purpose · important columns · relationships · business rules.
 
-### pond_types
+### pond_types — ✅ implemented (Phase 2)
 - **Purpose:** classification (nursery, grow-out, brood, …).
-- **Columns:** `id`, `name`, `description`, `is_active`, `timestamps`.
+- **Columns:** `id`, `name` (varchar 100, **unique**), `description`
+  (varchar 500, nullable), `is_active` (bool, default true, indexed), `timestamps`.
 - **Relationships:** hasMany `ponds`.
+- **Rules:** a type **still referenced by ponds cannot be deleted** — the FK uses
+  `restrictOnDelete`, and `PondTypeService::delete()` turns the constraint into a
+  clear application error. Mark a type inactive to stop it being offered for new
+  ponds without removing it.
 
-### ponds
+### ponds — ✅ implemented (Phase 2)
 - **Purpose:** the primary operating unit.
-- **Columns:** `id`, `pond_type_id` (FK), `name`, `code`, `area_decimal`,
-  `average_depth_m`, `capacity_fish`, `status`, `started_on`, `timestamps`.
-- **Relationships:** belongsTo `pond_types`; hasMany `fish_stockings`,
-  `feed_usages`, `inspections`, `growth_records`, `harvests`,
-  `pond_ledger_entries`.
-- **Rules:** status transitions are explicit; a pond with live stock cannot be
-  deleted (only archived).
-
-### fish_species
-- **Purpose:** catalogue of species raised.
-- **Columns:** `id`, `name`, `local_name`, `scientific_name`,
-  `default_price_per_kg`, `is_active`, `timestamps`.
-- **Relationships:** hasMany `fish_stockings`, `sale_items`.
-
-### fish_stockings
-- **Purpose:** records fish put into a pond (stock IN).
-- **Columns:** `id`, `pond_id` (FK), `fish_species_id` (FK), `quantity`,
-  `avg_weight_g`, `total_weight_kg`, `unit_cost`, `total_cost`, `stocked_on`,
-  `supplier_id` (FK, nullable), `note`, `created_by` (FK users), `timestamps`.
-- **Rules:** increases fish stock. Multi-record writes are transactional.
-
-### fish_mortalities
-- **Purpose:** records fish deaths (stock OUT).
-- **Columns:** `id`, `pond_id` (FK), `quantity`, `avg_weight_g`, `recorded_on`,
-  `cause`, `note`, `created_by` (FK users), `timestamps`.
-- **Rules:** decreases fish stock; can never take stock below zero.
-
-### harvests
-- **Purpose:** records fish removed from a pond (stock OUT).
-- **Columns:** `id`, `pond_id` (FK), `fish_species_id` (FK), `quantity`,
-  `total_weight_kg`, `avg_weight_g`, `harvested_on`, `destination`, `note`,
-  `created_by` (FK users), `timestamps`.
-- **Rules:** decreases fish stock; feeds sale availability.
-
-### feed_types
-- **Purpose:** feed product catalogue.
-- **Columns:** `id`, `name`, `brand`, `protein_percent`, `unit`,
-  `package_weight_kg`, `default_unit_cost`, `low_stock_level_kg`, `is_active`,
+- **Columns:** `id`, `pond_number` (varchar 50, **unique**), `name` (varchar 150),
+  `pond_type_id` (FK → `pond_types`, `restrictOnDelete`, required), `size`
+  (decimal 12,3), `size_unit` (varchar 20), `depth` (decimal 10,3, nullable),
+  `depth_unit` (varchar 20, nullable), `location` (varchar 255, nullable),
+  `water_source` (varchar 100, nullable), `status` (varchar 30, default `active`,
+  indexed), `description` (text, nullable), `is_active` (bool, indexed),
   `timestamps`.
-- **Relationships:** hasMany `feed_purchases`, `feed_usages`.
+- **Indexes:** unique on `pond_number`; `status`; `is_active`; composite
+  `(pond_type_id, status)` for the common "status within a type" filter.
+- **Relationships:** belongsTo `pond_types` (as `type()`); hasMany
+  `fish_stockings`, `fish_mortalities`, `harvests` (Phase 3), `feed_usages`
+  (Phase 4), `ledger_entries` (Phase 5) — as `ledgerEntries()`. `inspections`
+  and `growth_records` will be added when those tables exist.
+- **Rules:**
+  - `size`/`depth` are `decimal`, never float (they are summed and compared by
+    later modules, where float drift would show).
+  - `is_active` is **derived from `status`** by `PondService` (`active` and
+    `empty` are usable), never accepted from the form.
+  - Canonical status keys live in `config/ponds.php`: `active`, `inactive`,
+    `maintenance`, `empty`.
+  - A pond with live stock will not be deletable once fish-stock tables land —
+    the guard belongs in `PondService` (the write path) and `PondPolicy`.
 
-### feed_purchases
+### fish_species — ✅ implemented (Phase 3)
+- **Purpose:** catalogue of species raised.
+- **Columns:** `id`, `name` (varchar 100, **unique**), `local_name` (varchar 100,
+  nullable), `scientific_name` (varchar 150, nullable), `default_price_per_kg`
+  (decimal 15,2, nullable), `is_active` (bool, default true, indexed),
+  `description` (text, nullable), `timestamps`.
+- **Relationships:** hasMany `fish_stockings`, `harvests`.
+- **Rules:** a species referenced by any stocking or harvest **cannot be deleted**
+  (FK `restrictOnDelete` + `FishSpeciesService` guard); mark it inactive instead.
+
+### fish_stockings — ✅ implemented (Phase 3)
+- **Purpose:** records fish put into a pond (stock IN).
+- **Columns:** `id`, `pond_id` (FK → `ponds`, `restrictOnDelete`),
+  `fish_species_id` (FK → `fish_species`, `restrictOnDelete`), `quantity`
+  (unsignedInteger), `avg_weight_g` (decimal 10,2, nullable), `total_weight_kg`
+  (decimal 12,3, nullable), `unit_cost` / `total_cost` (decimal 15,2, nullable),
+  `stocked_on` (date, indexed), `supplier_name` (varchar 150, nullable),
+  `note`, `created_by` (FK → `users`, `nullOnDelete`), `timestamps`.
+- **Indexes:** `stocked_on`; composite `(pond_id, stocked_on)`.
+- **Rules:** increases fish stock. `total_weight_kg` is DERIVED
+  (`quantity × avg_weight_g / 1000`) by `FishStockService`, never entered twice.
+  Deleting a stocking is refused when it would take the pond negative.
+  `supplier_name` is a plain column — there is no `suppliers` table yet.
+
+### fish_mortalities — ✅ implemented (Phase 3)
+- **Purpose:** records fish deaths (stock OUT).
+- **Columns:** `id`, `pond_id` (FK → `ponds`, `restrictOnDelete`), `quantity`
+  (unsignedInteger), `avg_weight_g` (decimal 10,2, nullable), `recorded_on`
+  (date, indexed), `cause` (varchar 100, nullable), `note`, `created_by`
+  (FK → `users`, `nullOnDelete`), `timestamps`.
+- **Indexes:** `recorded_on`; composite `(pond_id, recorded_on)`.
+- **Rules:** decreases fish stock; **can never take stock below zero** — the
+  service rejects it before writing. `cause` values come from `config/fish.php`.
+  Mortality is recorded per pond (not per species).
+
+### harvests — ✅ implemented (Phase 3)
+- **Purpose:** records fish removed from a pond (stock OUT).
+- **Columns:** `id`, `pond_id` (FK → `ponds`, `restrictOnDelete`),
+  `fish_species_id` (FK → `fish_species`, `restrictOnDelete`), `quantity`
+  (unsignedInteger), `total_weight_kg` (decimal 12,3, nullable), `avg_weight_g`
+  (decimal 10,2, nullable), `harvested_on` (date, indexed), `destination`
+  (varchar 150, nullable), `note`, `created_by` (FK → `users`, `nullOnDelete`),
+  `timestamps`.
+- **Indexes:** `harvested_on`; composite `(pond_id, harvested_on)`.
+- **Rules:** decreases fish stock; **can never take stock below zero**.
+  `avg_weight_g` is DERIVED from `total_weight_kg` and the count. Feeds sale
+  availability — that link belongs to the Sales module and is not created yet.
+
+### feed_types — ✅ implemented (Phase 4)
+- **Purpose:** feed product catalogue.
+- **Columns:** `id`, `name` (varchar 120, **unique**), `brand` (varchar 120,
+  nullable), `protein_percent` (decimal 5,2, nullable), `unit` (varchar 30,
+  nullable), `package_weight_kg` (decimal 10,3, nullable), `default_unit_cost`
+  (decimal 15,2, nullable), `low_stock_level_kg` (decimal 12,3, nullable),
+  `is_active` (bool, default true, indexed), `description` (text, nullable),
+  `timestamps`.
+- **Relationships:** hasMany `feed_purchases`, `feed_usages`, `feed_adjustments`.
+- **Rules:** stock is NOT a column — it is always derived by `FeedStockService`
+  from the movement records. A type referenced by any movement **cannot be
+  deleted** (FK `restrictOnDelete` + `FeedTypeService` guard); mark it inactive
+  instead. `low_stock_level_kg` drives the low-feed-stock signal (`isLow`).
+
+### feed_purchases — ✅ implemented (Phase 4)
 - **Purpose:** feed bought from a supplier (feed stock IN).
-- **Columns:** `id`, `supplier_id` (FK), `feed_type_id` (FK), `quantity_kg`,
-  `unit_cost`, `total_cost`, `purchased_on`, `invoice_no`, `paid_amount`,
-  `note`, `created_by` (FK users), `timestamps`.
-- **Rules:** increases feed stock; creates a supplier due; transactional.
+- **Columns:** `id`, `feed_type_id` (FK → `feed_types`, `restrictOnDelete`),
+  `quantity_kg` (decimal 12,3), `unit_cost` (decimal 15,2, nullable),
+  `total_cost` (decimal 15,2, nullable — DERIVED), `purchased_on` (date,
+  indexed), `invoice_no` (varchar 100, nullable), `supplier_name` (varchar 150,
+  nullable), `paid_amount` (decimal 15,2, nullable), `note`, `created_by`
+  (FK → `users`, `nullOnDelete`), `timestamps`.
+- **Indexes:** `purchased_on`; composite `(feed_type_id, purchased_on)`.
+- **Rules:** increases feed stock. `total_cost` is DERIVED
+  (`quantity_kg × unit_cost`) by the service, never entered twice. Deleting a
+  purchase is refused when it would take stock negative. There is **no
+  `supplier_id`** yet — the supplier is a plain `supplier_name` string until the
+  Suppliers module adds a nullable FK alongside it.
 
-### feed_usages
+### feed_usages — ✅ implemented (Phase 4)
 - **Purpose:** feed given to a pond (feed stock OUT).
-- **Columns:** `id`, `pond_id` (FK), `feed_type_id` (FK), `quantity_kg`,
-  `used_on`, `note`, `created_by` (FK users), `timestamps`.
-- **Rules:** decreases feed stock; can never take stock below zero; drives FCR.
+- **Columns:** `id`, `pond_id` (FK → `ponds`, `restrictOnDelete`),
+  `feed_type_id` (FK → `feed_types`, `restrictOnDelete`), `quantity_kg`
+  (decimal 12,3), `used_on` (date, indexed), `note`, `created_by`
+  (FK → `users`, `nullOnDelete`), `timestamps`.
+- **Indexes:** `used_on`; composite `(pond_id, used_on)`; `(feed_type_id, used_on)`.
+- **Rules:** decreases feed stock; **can never take stock below zero** — the
+  service rejects it before writing. This is the feed input to FCR
+  (docs/BUSINESS_LOGIC.md §1).
 
-### feed_stock_adjustments
+### feed_stock_adjustments — ✅ implemented (Phase 4)
 - **Purpose:** manual correction of feed stock with a reason.
-- **Columns:** `id`, `feed_type_id` (FK), `direction` (in/out), `quantity_kg`,
-  `reason`, `adjusted_on`, `created_by` (FK users), `timestamps`.
-- **Rules:** stock is never changed silently — an adjustment always records why.
+- **Columns:** `id`, `feed_type_id` (FK → `feed_types`, `restrictOnDelete`),
+  `direction` (varchar 10, indexed — `in` | `out`), `quantity_kg` (decimal 12,3,
+  always a positive magnitude), `reason` (varchar 60 — key from
+  `config/feed.php`), `note`, `adjusted_on` (date, indexed), `created_by`
+  (FK → `users`, `nullOnDelete`), `timestamps`.
+- **Indexes:** `direction`; `adjusted_on`; composite `(feed_type_id, adjusted_on)`.
+- **Rules:** stock is never changed silently — a **direction and a reason are
+  required**. An `out` adjustment can never take stock below zero. Deleting an
+  `in` adjustment is refused when the stock it added is already gone.
 
 ### growth_records
 - **Purpose:** sampled average weight over time, per pond.
@@ -305,14 +428,29 @@ Each entry: purpose · important columns · relationships · business rules.
   `entry_date`, `reference`, `description`, `created_by` (FK users), `timestamps`.
 - **Rules:** balance = debits − credits (sign convention in BUSINESS_LOGIC.md).
 
-### pond_ledger_entries
+### pond_ledger_entries — ✅ implemented (Phase 5)
 - **Purpose:** money in/out attributed to a specific pond — the basis of pond
   profitability.
-- **Columns:** `id`, `pond_id` (FK), `entry_type` (debit/credit), `category`,
-  `amount`, `entry_date`, `reference`, `source_type`, `source_id`,
-  `description`, `created_by` (FK users), `timestamps`.
+- **Columns:** `id`, `pond_id` (FK → `ponds`, `restrictOnDelete`), `entry_type`
+  (varchar 10, indexed — `debit` | `credit`), `category` (varchar 60, indexed —
+  key from `config/ledger.php`), `amount` (decimal 15,2), `entry_date` (date,
+  indexed), `reference` (varchar 100, nullable), `source_type` (varchar 40,
+  default `manual`, indexed), `source_id` (unsignedBigInteger, nullable, indexed),
+  `description`, `created_by` (FK → `users`, `nullOnDelete`), `timestamps`.
+- **Indexes:** `entry_type`, `category`, `entry_date`, `source_type`, `source_id`;
+  composite `(pond_id, entry_date)` and `(entry_type, entry_date)`.
 - **Rules:** entries are created by the service that owns the underlying
-  transaction — never written ad-hoc by a controller.
+  transaction — never written ad-hoc by a controller. The one write path is
+  `PondLedgerService::record()`.
+  - **Sign convention:** `debit` = money out; `credit` = money in;
+    `Pond Profit = Σ credits − Σ debits`, applied via `Finance/LedgerRules`.
+    A negative profit is a real loss and is never clamped.
+  - `source_type`/`source_id` are a polymorphic-style pair (string + id), **not**
+    an FK: sources live in different tables and `manual` has no row.
+  - Deleting a source transaction reverses its entry in the same transaction
+    (`PondLedgerService::reverseSource()`).
+  - Only entries with `source_type = manual` may be deleted from the UI; a
+    generated entry is reversed with its source.
 
 ### income_entries
 - **Purpose:** income not tied to a sale (misc. farm income).
@@ -367,9 +505,10 @@ column.
 - Index every foreign key.
 - Index `users.company_id` and `users.email`.
 - Unique indexes: `companies.code`, `users.email`, `roles.name`,
-  `permissions.name`, `(user_id, role_id)`, `(permission_id, role_id)`.
-- Index columns used for date-range reporting (`sale_date`, `purchased_on`,
-  `used_on`, `inspected_on`, `entry_date`).
+  `permissions.name`, `(user_id, role_id)`, `(permission_id, role_id)`,
+  `pond_types.name`, `ponds.pond_number`, `fish_species.name`, `feed_types.name`.
+- Index columns used for date-range reporting (`stocked_on`, `recorded_on`,
+  `harvested_on`, `purchased_on`, `used_on`, `adjusted_on`, `entry_date`).
 - Composite indexes for common report filters, e.g. `(status, sale_date)`.
 - Eager-load relationships that views iterate to avoid N+1.
 - Paginate all list and report views.

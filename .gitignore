@@ -22,3 +22,10 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Ad-hoc QA / probe scripts and their output — never part of the app.
+/_qa_*.php
+/_qa_*.cjs
+/qa-*.mjs
+/qa-*.json
+/qa_*.json

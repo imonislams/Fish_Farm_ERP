@@ -23,7 +23,11 @@ $paths = [
 'bell' => 'M15 17H9m9 0h1a1 1 0 001-1v-1l-1.5-2V9a5.5 5.5 0 00-11 0v4L6 15v1a1 1 0 001 1h1m7 0a3 3 0 11-6 0',
 'menu' => 'M4 6h16M4 12h16M4 18h16',
 'search' => 'M11 18a7 7 0 100-14 7 7 0 000 14zm5.5-1.5L21 21',
-'chevron' => 'M9 5l7 7-7 7',
+    'chevron' => 'M9 5l7 7-7 7',
+    'alert' => 'M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z',
+    'scale' => 'M12 3v18M7 7l-4 7h8L7 7zm10 0l-4 7h8l-4-7zM5 21h14',
+    'plus' => 'M12 5v14M5 12h14',
+    'download' => 'M12 3v12m0 0l-4-4m4 4l4-4M5 21h14',
 ];
 $d = $paths[$name] ?? $paths['grid'];
 @endphp
